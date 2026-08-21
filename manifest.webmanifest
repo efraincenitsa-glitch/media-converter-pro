@@ -1,0 +1,15 @@
+{
+  "name": "Media Converter Pro",
+  "short_name": "Converter Pro",
+  "description": "Convierte formatos de video y audio desde el navegador con FFmpeg WebAssembly.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0d10",
+  "theme_color": "#0d0f12",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
