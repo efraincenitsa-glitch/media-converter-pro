@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d0f12" />
+  <meta name="description" content="Convierte, recorta y exporta video y audio en múltiples formatos directamente en tu navegador, sin subir archivos a ningún servidor." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
+  <title>Consola · Media Converter Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="rack-lines" aria-hidden="true"></div>
+
+  <header class="hero">
+    <nav class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span><span class="bar b4"></span>
+        </span>
+        <div>
+          <p class="eyebrow">Procesamiento 100% local · PWA</p>
+          <h1>Media Converter <span>Pro</span></h1>
+        </div>
+      </div>
+      <button id="installBtn" class="btn ghost hidden">Instalar app</button>
+    </nav>
+    <section class="hero-grid">
+      <div>
+        <p class="badge">Consola de conversión</p>
+        <h2>Tu propia sala de máquinas para audio y video</h2>
+        <p class="lead">Carga uno o varios archivos, arma la cadena de proceso —formato, calidad, recorte, rotación, velocidad— y exporta. Todo corre en tu navegador con FFmpeg WebAssembly: nada sale de tu equipo.</p>
+        <ul class="hero-stats">
+          <li><strong>7</strong><span>formatos de audio</span></li>
+          <li><strong>4</strong><span>formatos de video / GIF</span></li>
+          <li><strong>0</strong><span>bytes enviados a un servidor</span></li>
+        </ul>
+      </div>
+      <div class="privacy-card">
+        <strong>Cómo funciona</strong>
+        <span>El motor FFmpeg se carga una vez desde CDN y luego procesa cada archivo en memoria, en tu propio navegador. Cierra la pestaña y no queda rastro en ningún servidor.</span>
+      </div>
+    </section>
+  </header>
+
+  <main class="app">
+    <section class="card proto-warning hidden" id="protocolWarning">
+      <strong>Esta página se abrió como archivo local (file://)</strong>
+      <p>El motor de conversión usa un Web Worker que los navegadores bloquean fuera de un servidor. Sirve esta carpeta con un servidor local (por ejemplo <code>python3 -m http.server</code>) o súbela a GitHub Pages para poder convertir archivos.</p>
+    </section>
+
+    <section class="card uploader" id="dropZone">
+      <input id="fileInput" type="file" multiple accept="video/*,audio/*,.mp4,.mov,.mkv,.webm,.avi,.m4v,.mp3,.wav,.ogg,.flac,.m4a,.aac,.opus,.wma" />
+      <span class="upload-icon" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M24 30V6M24 6l-8 8M24 6l8 8"/><path d="M8 30v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6"/></svg>
+      </span>
+      <h3>Suelta tus archivos aquí</h3>
+      <p>O selecciona uno o varios — video y audio se pueden mezclar en la misma cola.</p>
+      <button class="btn primary" id="selectBtn">Elegir archivos</button>
+      <p class="mini">Entrada compatible: MP4, MOV, MKV, WebM, AVI, MP3, WAV, OGG, FLAC, M4A, AAC, OPUS.</p>
+    </section>
+
+    <section class="workspace hidden" id="workspace">
+      <article class="card preview-card">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Vista previa</p>
+            <h3 id="fileName">Archivo seleccionado</h3>
+          </div>
+          <button id="changeFileBtn" class="btn ghost">Agregar más</button>
+        </div>
+        <video id="videoPreview" class="hidden" controls playsinline></video>
+        <audio id="audioPreview" class="hidden" controls></audio>
+        <div class="file-stats" id="fileStats"></div>
+        <div class="quick-actions">
+          <button class="btn subtle" id="setStartBtn">Marcar inicio aquí</button>
+          <button class="btn subtle" id="setEndBtn">Marcar final aquí</button>
+          <button class="btn subtle" id="resetTrimBtn">Sin recorte</button>
+        </div>
+
+        <div class="section-title queue-title">
+          <div>
+            <p class="eyebrow">Cola de conversión</p>
+            <h3>Archivos agregados</h3>
+          </div>
+          <span class="pill" id="queueCount">1 archivo</span>
+        </div>
+        <ul class="queue-list" id="queueList"></ul>
+        <p class="mini queue-hint">La configuración del panel derecho se aplica a todos los archivos de la cola al convertir.</p>
+      </article>
+
+      <aside class="card settings-card">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Configuración</p>
+            <h3>Cadena de salida</h3>
+          </div>
+          <span class="status-dot" id="engineStatus">Motor no cargado</span>
+        </div>
+
+        <div class="mode-tabs">
+          <button class="tab" data-mode="audio">Audio</button>
+          <button class="tab" data-mode="video">Video</button>
+          <button class="tab" data-mode="extract">Extraer audio</button>
+          <button class="tab" data-mode="thumbnail">Miniatura</button>
+        </div>
+
+        <div class="presets" id="presets">
+          <span class="presets-label">Presets rápidos</span>
+          <div class="presets-row">
+            <button class="chip" data-preset="podcast">Podcast (voz)</button>
+            <button class="chip" data-preset="whatsapp">WhatsApp / Estado</button>
+            <button class="chip" data-preset="light">Archivo ligero</button>
+            <button class="chip" data-preset="max">Máxima calidad</button>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <label>Formato de salida
+            <select id="outputFormat"></select>
+          </label>
+          <label>Nombre de salida
+            <input id="outputName" type="text" placeholder="archivo-convertido" />
+          </label>
+          <label>Inicio del recorte
+            <input id="trimStart" type="text" value="00:00:00" placeholder="00:00:00" />
+          </label>
+          <label>Final del recorte
+            <input id="trimEnd" type="text" value="" placeholder="Opcional" />
+          </label>
+        </div>
+
+        <div id="audioOptions" class="options-block">
+          <div class="form-grid">
+            <label>Bitrate de audio
+              <select id="audioBitrate">
+                <option value="96k">96 kbps · voz ligera</option>
+                <option value="128k">128 kbps</option>
+                <option value="192k" selected>192 kbps · recomendado</option>
+                <option value="256k">256 kbps</option>
+                <option value="320k">320 kbps</option>
+              </select>
+            </label>
+            <label>Frecuencia
+              <select id="sampleRate">
+                <option value="44100" selected>44.1 kHz</option>
+                <option value="48000">48 kHz</option>
+              </select>
+            </label>
+            <label>Canales
+              <select id="channels">
+                <option value="2" selected>Estéreo</option>
+                <option value="1">Mono</option>
+              </select>
+            </label>
+            <label>Volumen
+              <select id="volumeBoost">
+                <option value="1" selected>Normal</option>
+                <option value="1.25">Subir 25%</option>
+                <option value="1.5">Subir 50%</option>
+                <option value="0.75">Bajar 25%</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div id="videoOptions" class="options-block hidden">
+          <div class="form-grid">
+            <label>Resolución
+              <select id="resolution">
+                <option value="source" selected>Original</option>
+                <option value="1920:-2">1080p</option>
+                <option value="1280:-2">720p</option>
+                <option value="854:-2">480p</option>
+                <option value="640:-2">360p</option>
+              </select>
+            </label>
+            <label>Calidad de video
+              <select id="videoQuality">
+                <option value="18">Alta</option>
+                <option value="23" selected>Recomendada</option>
+                <option value="28">Ligera</option>
+                <option value="32">Muy ligera</option>
+              </select>
+            </label>
+            <label>FPS
+              <select id="fps">
+                <option value="source" selected>Original</option>
+                <option value="60">60 fps</option>
+                <option value="30">30 fps</option>
+                <option value="24">24 fps</option>
+                <option value="12">12 fps · GIF</option>
+              </select>
+            </label>
+            <label>Audio del video
+              <select id="videoAudioMode">
+                <option value="keep" selected>Conservar audio</option>
+                <option value="remove">Quitar audio</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div id="thumbnailOptions" class="options-block hidden">
+          <p class="mini">Se captura el cuadro en el tiempo de "Inicio del recorte" (o el primer segundo si se deja en 00:00:00).</p>
+        </div>
+
+        <div class="form-grid transform-grid">
+          <label>Rotación
+            <select id="rotateVal">
+              <option value="none" selected>Sin cambio</option>
+              <option value="90">90° horario</option>
+              <option value="180">180°</option>
+              <option value="270">90° antihorario</option>
+              <option value="flipH">Espejo horizontal</option>
+            </select>
+          </label>
+          <label>Velocidad
+            <select id="speedVal">
+              <option value="0.5">0.5x</option>
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1x normal</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2x</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="toggles">
+          <label><input id="normalize" type="checkbox" checked /> Normalizar audio</label>
+          <label><input id="fadeIn" type="checkbox" /> Fade in 2s</label>
+          <label><input id="fadeOut" type="checkbox" /> Fade out 2s</label>
+          <label><input id="stripSilence" type="checkbox" /> Reducir silencios largos</label>
+          <label><input id="fastStart" type="checkbox" checked /> Optimizar MP4 para web</label>
+          <label><input id="copyWhenPossible" type="checkbox" /> Copia rápida si es compatible</label>
+        </div>
+
+        <details class="advanced">
+          <summary>Metadatos opcionales</summary>
+          <div class="form-grid advanced-grid">
+            <label>Título
+              <input id="metaTitle" type="text" placeholder="Opcional" />
+            </label>
+            <label>Artista / Autor
+              <input id="metaArtist" type="text" placeholder="Opcional" />
+            </label>
+          </div>
+        </details>
+
+        <button id="convertBtn" class="btn primary big">Convertir archivo</button>
+        <button id="cancelBtn" class="btn danger hidden">Cancelar</button>
+
+        <div class="progress-wrap">
+          <div class="progress-info"><span id="progressText">Listo para convertir</span><span id="progressPct" class="mono">0%</span></div>
+          <div class="led-meter" id="ledMeter" aria-hidden="true"></div>
+          <pre id="logBox" class="log mono" aria-live="polite"></pre>
+        </div>
+      </aside>
+    </section>
+
+    <section class="card formats-card">
+      <p class="eyebrow">Referencia técnica</p>
+      <h3>Cadena de conversión disponible</h3>
+      <div class="format-grid">
+        <div><strong>Audio de salida</strong><span>MP3, WAV, OGG, OPUS, M4A/AAC, AAC, FLAC.</span></div>
+        <div><strong>Video / GIF de salida</strong><span>MP4, WebM, MKV y GIF animado.</span></div>
+        <div><strong>Miniatura</strong><span>Extrae un cuadro de un video como JPG o PNG.</span></div>
+        <div><strong>Herramientas</strong><span>Lote, recorte, rotación, velocidad, presets, normalización, fades, metadatos y PWA instalable.</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Media Converter Pro — listo para GitHub Pages.</footer>
+  <script src="app.js"></script>
+</body>
+</html>

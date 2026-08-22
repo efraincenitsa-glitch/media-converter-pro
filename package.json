@@ -1,0 +1,16 @@
+{
+  "name": "media-converter-pro-main",
+  "version": "1.0.0",
+  "description": "App web/PWA para convertir, recortar y transformar video y audio directamente desde el navegador, con diseño de consola de estudio (grafito + ámbar/teal) y procesamiento 100% local con FFmpeg WebAssembly.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.10",
+    "@ffmpeg/util": "^0.12.1"
+  }
+}
