@@ -195,43 +195,151 @@ $('setStartBtn').addEventListener('click', ()=>$('trimStart').value=formatTime(a
 $('setEndBtn').addEventListener('click', ()=>$('trimEnd').value=formatTime(activePreview().currentTime));
 $('resetTrimBtn').addEventListener('click', ()=>{$('trimStart').value='00:00:00';$('trimEnd').value=''});
 
-// ---------- ffmpeg engine ----------
 async function loadFFmpeg(){
-  if(state.ffmpeg) return state.ffmpeg;
-  $('engineStatus').textContent='Cargando motor...';
-  log('Cargando FFmpeg WebAssembly desde CDN. La primera carga requiere internet.');
-  const [{ FFmpeg }, { fetchFile, toBlobURL }] = await Promise.all([import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js'), import('https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js')]);
-  const ffmpeg = new FFmpeg();
-  ffmpeg.on('log', ({message})=>{ if(message && !message.includes('deprecated')) log(message); });
-  ffmpeg.on('progress', ({progress})=>{
-    const clamped = Math.max(0, Math.min(1, progress||0));
-    const overall = ((state.jobIndex-1) + clamped) / Math.max(1, state.jobTotal);
-    setProgress(overall, 'Convirtiendo');
-  });
-  const baseURL='./ffmpeg';
-  try{
 
-await ffmpeg.load({
-    coreURL: `${baseURL}/ffmpeg-core.js`,
-    wasmURL: `${baseURL}/ffmpeg-core.wasm`
-});
+    if(state.ffmpeg){
+        return state.ffmpeg;
+    }
 
-    log('Motor FFmpeg cargado correctamente');
+    $('engineStatus').textContent = 'Cargando motor...';
+    $('engineStatus').classList.remove('ready');
 
-}catch(error){
+    log('Cargando motor FFmpeg desde archivos locales.');
 
-    log(`ERROR FFmpeg: ${error.message}`);
-    console.error(error);
-    throw error;
+    try{
+
+        const ffmpegModule =
+            await import('./ffmpeg/lib/index.js');
+
+        const utilModule =
+            await import('./ffmpeg/util/index.js');
+
+        const FFmpeg =
+            ffmpegModule.FFmpeg;
+
+        const fetchFile =
+            utilModule.fetchFile;
+
+        const ffmpeg =
+            new FFmpeg();
+
+        ffmpeg.on(
+            'log',
+            ({ message }) => {
+
+                if(
+                    message &&
+                    !message.includes('deprecated')
+                ){
+                    log(message);
+                }
+
+            }
+        );
+
+        ffmpeg.on(
+            'progress',
+            ({ progress }) => {
+
+                const clamped =
+                    Math.max(
+                        0,
+                        Math.min(
+                            1,
+                            progress || 0
+                        )
+                    );
+
+                const overall =
+                    (
+                        (state.jobIndex - 1) +
+                        clamped
+                    ) /
+                    Math.max(
+                        1,
+                        state.jobTotal
+                    );
+
+                setProgress(
+                    overall,
+                    'Convirtiendo'
+                );
+
+            }
+        );
+
+        const coreURL =
+            new URL(
+                './ffmpeg/core/ffmpeg-core.js',
+                window.location.href
+            ).href;
+
+        const wasmURL =
+            new URL(
+                './ffmpeg/core/ffmpeg-core.wasm',
+                window.location.href
+            ).href;
+
+        await ffmpeg.load({
+            coreURL,
+            wasmURL
+        });
+
+        state.ffmpeg =
+            ffmpeg;
+
+        state.fetchFile =
+            fetchFile;
+
+        $('engineStatus').textContent =
+            'Motor listo';
+
+        $('engineStatus').classList.add(
+            'ready'
+        );
+
+        log(
+            'Motor FFmpeg cargado correctamente.'
+        );
+
+        return ffmpeg;
+
+    }catch(error){
+
+        state.ffmpeg =
+            null;
+
+        state.fetchFile =
+            null;
+
+        $('engineStatus').textContent =
+            'Error al cargar motor';
+
+        $('engineStatus').classList.remove(
+            'ready'
+        );
+
+        const message =
+            error && error.message
+                ? error.message
+                : String(error);
+
+        log(
+            `ERROR FFmpeg: ${message}`
+        );
+
+        console.error(
+            'Error cargando FFmpeg:',
+            error
+        );
+
+        throw error;
+
+    }
 
 }
-  state.ffmpeg=ffmpeg; state.fetchFile=fetchFile;
-  $('engineStatus').textContent='Motor listo'; $('engineStatus').classList.add('ready');
-  log('Motor listo.');
-  return ffmpeg;
-}
 
-// ---------- filter chains ----------
+
 function rotateFilters(){
   const rot=$('rotateVal').value;
   if(rot==='90') return ['transpose=1'];
