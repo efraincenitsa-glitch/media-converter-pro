@@ -169,42 +169,130 @@
           </div>
         </div>
 
-        <div id="videoOptions" class="options-block hidden">
-          <div class="form-grid">
-            <label>Resolución
-              <select id="resolution">
-                <option value="source" selected>Original</option>
-                <option value="1920:-2">1080p</option>
-                <option value="1280:-2">720p</option>
-                <option value="854:-2">480p</option>
-                <option value="640:-2">360p</option>
-              </select>
-            </label>
-            <label>Calidad de video
-              <select id="videoQuality">
-                <option value="18">Alta</option>
-                <option value="23" selected>Recomendada</option>
-                <option value="28">Ligera</option>
-                <option value="32">Muy ligera</option>
-              </select>
-            </label>
-            <label>FPS
-              <select id="fps">
-                <option value="source" selected>Original</option>
-                <option value="60">60 fps</option>
-                <option value="30">30 fps</option>
-                <option value="24">24 fps</option>
-                <option value="12">12 fps · GIF</option>
-              </select>
-            </label>
-            <label>Audio del video
-              <select id="videoAudioMode">
-                <option value="keep" selected>Conservar audio</option>
-                <option value="remove">Quitar audio</option>
-              </select>
-            </label>
-          </div>
-        </div>
+<div id="videoOptions" class="options-block hidden">
+
+  <div class="form-grid">
+
+    <label>Resolución
+      <select id="resolution">
+        <option value="source" selected>Original / 720p para MP3</option>
+        <option value="1920:-2">1080p</option>
+        <option value="1280:-2">720p</option>
+        <option value="854:-2">480p</option>
+        <option value="640:-2">360p</option>
+      </select>
+    </label>
+
+    <label>Calidad de video
+      <select id="videoQuality">
+        <option value="18">Alta</option>
+        <option value="23" selected>Recomendada</option>
+        <option value="28">Ligera</option>
+        <option value="32">Muy ligera</option>
+      </select>
+    </label>
+
+    <label>FPS
+      <select id="fps">
+        <option value="source" selected>Original / 1 fps para portada</option>
+        <option value="60">60 fps</option>
+        <option value="30">30 fps</option>
+        <option value="24">24 fps</option>
+        <option value="12">12 fps · GIF</option>
+      </select>
+    </label>
+
+    <label>Audio del video
+      <select id="videoAudioMode">
+        <option value="keep" selected>Conservar audio</option>
+        <option value="remove">Quitar audio</option>
+      </select>
+    </label>
+
+  </div>
+
+  <section
+    id="audioToVideoOptions"
+    class="cover-panel"
+  >
+
+    <div class="cover-heading">
+
+      <div>
+        <strong>Portada para MP3 → MP4</strong>
+
+        <p class="mini">
+          Selecciona una imagen JPG, JPEG, PNG o WEBP.
+          La imagen permanecerá visible durante toda la canción.
+          Si no seleccionas una imagen, se utilizará un fondo negro.
+        </p>
+      </div>
+
+    </div>
+
+    <input
+      id="coverImageInput"
+      class="cover-file-input"
+      type="file"
+      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+    >
+
+    <div class="cover-actions">
+
+      <button
+        id="selectCoverBtn"
+        class="btn subtle"
+        type="button"
+      >
+        Seleccionar imagen
+      </button>
+
+      <button
+        id="removeCoverBtn"
+        class="btn subtle hidden"
+        type="button"
+      >
+        Quitar imagen
+      </button>
+
+    </div>
+
+    <div
+      id="coverPreviewBox"
+      class="cover-preview-box hidden"
+    >
+
+      <img
+        id="coverPreview"
+        alt="Vista previa de la portada seleccionada"
+      >
+
+      <div class="cover-preview-info">
+
+        <strong id="coverFileName">
+          Imagen de portada
+        </strong>
+
+        <span
+          id="coverFileSize"
+          class="mini"
+        >
+        </span>
+
+      </div>
+
+    </div>
+
+    <p
+      id="coverStatus"
+      class="cover-status"
+    >
+      Fondo actual: negro
+    </p>
+
+  </section>
+
+</div>
 
         <div id="thumbnailOptions" class="options-block hidden">
           <p class="mini">Se captura el cuadro en el tiempo de "Inicio del recorte" (o el primer segundo si se deja en 00:00:00).</p>

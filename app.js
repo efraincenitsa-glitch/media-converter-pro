@@ -31,21 +31,69 @@ const outputFormats = {
 };
 
 const state = {
-  queue: [], activeId: null, mode: 'audio',
-  ffmpeg: null, fetchFile: null, busy: false,
-  jobIndex: 0, jobTotal: 1,
+
+  queue: [],
+  activeId: null,
+  mode: 'audio',
+
+  ffmpeg: null,
+  fetchFile: null,
+  busy: false,
+
+  jobIndex: 0,
+  jobTotal: 1,
+
   deferredInstall: null,
-  file: null, fileKind: 'audio' // mirrors the active queue item, for shared helpers
+
+  file: null,
+  fileKind: 'audio',
+
+  coverImage: null,
+  coverPreviewUrl: null
+
 };
 
 let idCounter = 0;
 const genId = () => `f${++idCounter}`;
 
-const dropZone = $('dropZone');
-const fileInput = $('fileInput');
-const videoPreview = $('videoPreview');
-const audioPreview = $('audioPreview');
-const logBox = $('logBox');
+const dropZone =
+    $('dropZone');
+
+const fileInput =
+    $('fileInput');
+
+const videoPreview =
+    $('videoPreview');
+
+const audioPreview =
+    $('audioPreview');
+
+const logBox =
+    $('logBox');
+
+const coverImageInput =
+    $('coverImageInput');
+
+const selectCoverBtn =
+    $('selectCoverBtn');
+
+const removeCoverBtn =
+    $('removeCoverBtn');
+
+const coverPreviewBox =
+    $('coverPreviewBox');
+
+const coverPreview =
+    $('coverPreview');
+
+const coverFileName =
+    $('coverFileName');
+
+const coverFileSize =
+    $('coverFileSize');
+
+const coverStatus =
+    $('coverStatus');
 
 // ---------- small helpers ----------
 function log(message){ const time = new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); logBox.textContent += `[${time}] ${message}\n`; logBox.scrollTop = logBox.scrollHeight; }
@@ -73,6 +121,215 @@ function setProgress(ratio, text='Procesando'){
   [...meter.children].forEach((el,i)=>{ el.classList.remove('lit-amber','lit-teal'); if(i<lit) el.classList.add(i>=lit-3?'lit-teal':'lit-amber'); });
 }
 
+function isValidCoverImage(file){
+
+    if(!file){
+        return false;
+    }
+
+    const validMimeTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/webp'
+    ];
+
+    if(validMimeTypes.includes(file.type)){
+        return true;
+    }
+
+    return /\.(jpg|jpeg|png|webp)$/i.test(
+        file.name
+    );
+
+}
+
+function clearCoverImage(){
+
+    if(state.coverPreviewUrl){
+
+        URL.revokeObjectURL(
+            state.coverPreviewUrl
+        );
+
+    }
+
+    state.coverImage =
+        null;
+
+    state.coverPreviewUrl =
+        null;
+
+    if(coverImageInput){
+
+        coverImageInput.value =
+            '';
+
+    }
+
+    if(coverPreview){
+
+        coverPreview.removeAttribute(
+            'src'
+        );
+
+    }
+
+    if(coverPreviewBox){
+
+        coverPreviewBox.classList.add(
+            'hidden'
+        );
+
+    }
+
+    if(removeCoverBtn){
+
+        removeCoverBtn.classList.add(
+            'hidden'
+        );
+
+    }
+
+    if(coverFileName){
+
+        coverFileName.textContent =
+            'Imagen de portada';
+
+    }
+
+    if(coverFileSize){
+
+        coverFileSize.textContent =
+            '';
+
+    }
+
+    if(coverStatus){
+
+        coverStatus.textContent =
+            'Fondo actual: negro';
+
+    }
+
+    log(
+        'Imagen de portada eliminada. Se utilizará fondo negro.'
+    );
+
+}
+
+function setCoverImage(file){
+
+    if(!isValidCoverImage(file)){
+
+        alert(
+            'Selecciona una imagen JPG, JPEG, PNG o WEBP válida.'
+        );
+
+        if(coverImageInput){
+
+            coverImageInput.value =
+                '';
+
+        }
+
+        return;
+
+    }
+
+    if(state.coverPreviewUrl){
+
+        URL.revokeObjectURL(
+            state.coverPreviewUrl
+        );
+
+    }
+
+    state.coverImage =
+        file;
+
+    state.coverPreviewUrl =
+        URL.createObjectURL(
+            file
+        );
+
+    coverPreview.src =
+        state.coverPreviewUrl;
+
+    coverFileName.textContent =
+        file.name;
+
+    coverFileSize.textContent =
+        formatBytes(
+            file.size
+        );
+
+    coverPreviewBox.classList.remove(
+        'hidden'
+    );
+
+    removeCoverBtn.classList.remove(
+        'hidden'
+    );
+
+    coverStatus.textContent =
+        `Portada actual: ${file.name}`;
+
+    log(
+        `Imagen de portada seleccionada: ${file.name}`
+    );
+
+}
+
+if(selectCoverBtn){
+
+    selectCoverBtn.addEventListener(
+        'click',
+        () => {
+
+            coverImageInput.click();
+
+        }
+    );
+
+}
+
+if(coverImageInput){
+
+    coverImageInput.addEventListener(
+        'change',
+        event => {
+
+            const file =
+                event.target.files &&
+                event.target.files.length
+                    ? event.target.files[0]
+                    : null;
+
+            if(!file){
+
+                return;
+
+            }
+
+            setCoverImage(
+                file
+            );
+
+        }
+    );
+
+}
+
+if(removeCoverBtn){
+
+    removeCoverBtn.addEventListener(
+        'click',
+        clearCoverImage
+    );
+
+}
+
+
 // ---------- mode / format UI ----------
 function setMode(mode){
   state.mode = mode;
@@ -83,6 +340,57 @@ function setMode(mode){
   document.querySelector('.transform-grid').classList.toggle('hidden', mode==='thumbnail');
   populateFormats();
   updateOutputName();
+  updateAudioToVideoControls();
+}
+function updateAudioToVideoControls(){
+
+    const isAudioToVideo =
+        state.mode === 'video' &&
+        state.fileKind === 'audio';
+
+    const audioToVideoOptions =
+        $('audioToVideoOptions');
+
+    if(audioToVideoOptions){
+
+        audioToVideoOptions.classList.toggle(
+            'hidden',
+            !isAudioToVideo
+        );
+
+if(
+    !isAudioToVideo &&
+    state.coverImage
+){
+
+    clearCoverImage();
+
+}
+
+    }
+
+    const videoAudioMode =
+        $('videoAudioMode');
+
+    if(videoAudioMode){
+
+        if(isAudioToVideo){
+
+            videoAudioMode.value =
+                'keep';
+
+            videoAudioMode.disabled =
+                true;
+
+        }else{
+
+            videoAudioMode.disabled =
+                false;
+
+        }
+
+    }
+
 }
 function populateFormats(){ const select=$('outputFormat'); select.innerHTML=''; outputFormats[state.mode].forEach(f=>{ const opt=document.createElement('option'); opt.value=f.ext; opt.textContent=f.label; select.appendChild(opt); }); }
 function selectedFormat(){ return outputFormats[state.mode].find(f=>f.ext===$('outputFormat').value); }
@@ -134,10 +442,10 @@ function setActive(id){
   videoPreview.classList.toggle('hidden', item.kind==='audio');
   audioPreview.classList.toggle('hidden', item.kind!=='audio');
   activePreview().src = item.previewUrl;
-  if(item.kind==='audio' && state.mode==='video') setMode('audio');
   $('fileName').textContent = item.file.name;
   $('metaTitle').value = safeName(item.file.name).replaceAll('-',' ');
   updateOutputName();
+  updateAudioToVideoControls();
   setProgress(0,'Listo para convertir');
   $('fileStats').innerHTML = `<div class="stat"><strong>${formatBytes(item.file.size)}</strong><span>Tamaño</span></div><div class="stat"><strong>${item.file.type||'Detectado por extensión'}</strong><span>Tipo</span></div><div class="stat"><strong id="durationStat">Calculando...</strong><span>Duración</span></div>`;
   renderQueue();
@@ -433,6 +741,77 @@ function audioFilters(){
   const speed=$('speedVal').value; if(speed!=='1') filters.push(`atempo=${speed}`);
   return filters;
 }
+
+function audioVideoDimensions(){
+
+    const selected =
+        $('resolution').value;
+
+    if(selected === '1920:-2'){
+
+        return {
+            width: 1920,
+            height: 1080
+        };
+
+    }
+
+    if(selected === '854:-2'){
+
+        return {
+            width: 854,
+            height: 480
+        };
+
+    }
+
+    if(selected === '640:-2'){
+
+        return {
+            width: 640,
+            height: 360
+        };
+
+    }
+
+    return {
+        width: 1280,
+        height: 720
+    };
+
+}
+
+function audioVideoFps(){
+
+    const selected =
+        $('fps').value;
+
+    if(selected === 'source'){
+
+        return '1';
+
+    }
+
+    return selected;
+
+}
+
+function coverVideoFilter(
+    width,
+    height,
+    fps
+){
+
+    return [
+        `scale=${width}:${height}:force_original_aspect_ratio=decrease`,
+        `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black`,
+        'setsar=1',
+        `fps=${fps}`,
+        'format=yuv420p'
+    ].join(',');
+
+}
+
 function videoFilters(){
   const filters=[];
   if($('resolution').value!=='source') filters.push(`scale=${$('resolution').value}`);
@@ -490,6 +869,233 @@ async function convertItem(item, jobIndex, jobTotal){
         finalizeItem(item, data, fmt.ext==='jpg'?'image/jpeg':'image/png', fmt.ext);
         try{await ffmpeg.deleteFile(outputName)}catch{}
       }
+
+    } else if(
+        state.mode === 'video' &&
+        fmt.ext === 'mp4' &&
+        item.kind === 'audio'
+    ){
+
+        const outputName =
+            `out_${item.id}.mp4`;
+
+        const coverName =
+            state.coverImage
+                ? `cover_${item.id}.${extensionFromFile(state.coverImage)}`
+                : null;
+
+        try{
+            await ffmpeg.deleteFile(
+                outputName
+            );
+        }catch{}
+
+        if(coverName){
+
+            try{
+                await ffmpeg.deleteFile(
+                    coverName
+                );
+            }catch{}
+
+            await ffmpeg.writeFile(
+                coverName,
+                await state.fetchFile(
+                    state.coverImage
+                )
+            );
+
+        }
+
+        const dimensions =
+            audioVideoDimensions();
+
+        const outputFps =
+            audioVideoFps();
+
+        const args = [];
+
+        if(coverName){
+
+            args.push(
+                '-loop',
+                '1',
+                '-framerate',
+                outputFps,
+                '-i',
+                coverName
+            );
+
+            log(
+                `[${item.file.name}] Creando MP4 con portada: ${state.coverImage.name}`
+            );
+
+        }else{
+
+            args.push(
+                '-f',
+                'lavfi',
+                '-i',
+                `color=c=black:s=${dimensions.width}x${dimensions.height}:r=${outputFps}`
+            );
+
+            log(
+                `[${item.file.name}] Creando MP4 con fondo negro.`
+            );
+
+        }
+
+        if(start > 0){
+
+            args.push(
+                '-ss',
+                String(start)
+            );
+
+        }
+
+        args.push(
+            '-i',
+            inputName
+        );
+
+        if(
+            end !== null &&
+            end > start
+        ){
+
+            args.push(
+                '-t',
+                String(
+                    end - start
+                )
+            );
+
+        }
+
+        args.push(
+            '-map',
+            '0:v:0',
+            '-map',
+            '1:a:0'
+        );
+
+        args.push(
+            '-vf',
+            coverVideoFilter(
+                dimensions.width,
+                dimensions.height,
+                outputFps
+            )
+        );
+
+        args.push(
+            '-c:v',
+            'libx264',
+            '-preset',
+            'veryfast',
+            '-tune',
+            'stillimage',
+            '-crf',
+            $('videoQuality').value,
+            '-pix_fmt',
+            'yuv420p'
+        );
+
+        args.push(
+            '-c:a',
+            'aac',
+            '-b:a',
+            $('audioBitrate').value,
+            '-ar',
+            $('sampleRate').value,
+            '-ac',
+            $('channels').value
+        );
+
+        const af =
+            audioFilters();
+
+        if(af.length){
+
+            args.push(
+                '-af',
+                af.join(',')
+            );
+
+        }
+
+        if(title){
+
+            args.push(
+                '-metadata',
+                `title=${title}`
+            );
+
+        }
+
+        if(artist){
+
+            args.push(
+                '-metadata',
+                `artist=${artist}`
+            );
+
+        }
+
+        args.push(
+            '-shortest'
+        );
+
+        if($('fastStart').checked){
+
+            args.push(
+                '-movflags',
+                '+faststart'
+            );
+
+        }
+
+        args.push(
+            outputName
+        );
+
+        log(
+            `[${item.file.name}] ffmpeg ${args.join(' ')}`
+        );
+
+        await ffmpeg.exec(
+            args
+        );
+
+        const data =
+            await ffmpeg.readFile(
+                outputName
+            );
+
+        finalizeItem(
+            item,
+            data,
+            'video/mp4',
+            'mp4'
+        );
+
+        try{
+            await ffmpeg.deleteFile(
+                outputName
+            );
+        }catch{}
+
+        if(coverName){
+
+            try{
+                await ffmpeg.deleteFile(
+                    coverName
+                );
+            }catch{}
+
+        }
+
     } else if(state.mode==='video' && fmt.ext==='gif'){
       const paletteName=`pal_${item.id}.png`, outputName=`out_${item.id}.gif`;
       try{await ffmpeg.deleteFile(paletteName)}catch{} try{await ffmpeg.deleteFile(outputName)}catch{}
