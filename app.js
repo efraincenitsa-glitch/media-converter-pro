@@ -208,8 +208,23 @@ async function loadFFmpeg(){
     const overall = ((state.jobIndex-1) + clamped) / Math.max(1, state.jobTotal);
     setProgress(overall, 'Convirtiendo');
   });
-  const baseURL='https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-  await ffmpeg.load({ coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`,'text/javascript'), wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`,'application/wasm') });
+  const baseURL='./ffmpeg';
+  try{
+
+await ffmpeg.load({
+    coreURL: `${baseURL}/ffmpeg-core.js`,
+    wasmURL: `${baseURL}/ffmpeg-core.wasm`
+});
+
+    log('Motor FFmpeg cargado correctamente');
+
+}catch(error){
+
+    log(`ERROR FFmpeg: ${error.message}`);
+    console.error(error);
+    throw error;
+
+}
   state.ffmpeg=ffmpeg; state.fetchFile=fetchFile;
   $('engineStatus').textContent='Motor listo'; $('engineStatus').classList.add('ready');
   log('Motor listo.');
