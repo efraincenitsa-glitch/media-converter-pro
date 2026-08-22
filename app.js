@@ -230,8 +230,6 @@ async function loadFFmpeg(){
         const fetchFile =
             utilModule.fetchFile;
 
-        const toBlobURL =
-            utilModule.toBlobURL;
 
         if(typeof FFmpeg !== 'function'){
 
@@ -249,13 +247,7 @@ async function loadFFmpeg(){
 
         }
 
-        if(typeof toBlobURL !== 'function'){
 
-            throw new Error(
-                'No se encontró la función toBlobURL.'
-            );
-
-        }
 
         const ffmpeg =
             new FFmpeg();
@@ -307,51 +299,66 @@ async function loadFFmpeg(){
             }
         );
 
-        const coreFileURL =
-            new URL(
-                './ffmpeg/core/ffmpeg-core.js',
-                window.location.href
-            ).href;
+const coreURL =
+    new URL(
+        './ffmpeg/core/ffmpeg-core.js',
+        window.location.href
+    ).href;
 
-        const wasmFileURL =
-            new URL(
-                './ffmpeg/core/ffmpeg-core.wasm',
-                window.location.href
-            ).href;
+const wasmURL =
+    new URL(
+        './ffmpeg/core/ffmpeg-core.wasm',
+        window.location.href
+    ).href;
 
-        log(
-            'Preparando archivo ffmpeg-core.js.'
-        );
+log(
+    'Verificando archivo ffmpeg-core.js.'
+);
 
-        const coreBlobURL =
-            await toBlobURL(
-                coreFileURL,
-                'text/javascript'
-            );
+const coreResponse =
+    await fetch(
+        coreURL,
+        {
+            cache: 'no-store'
+        }
+    );
 
-        log(
-            'Preparando archivo ffmpeg-core.wasm.'
-        );
+if(!coreResponse.ok){
 
-        const wasmBlobURL =
-            await toBlobURL(
-                wasmFileURL,
-                'application/wasm'
-            );
+    throw new Error(
+        `No se pudo cargar ffmpeg-core.js. HTTP ${coreResponse.status}`
+    );
 
-        log(
-            'Iniciando motor FFmpeg.'
-        );
+}
 
-        await ffmpeg.load({
+log(
+    'Verificando archivo ffmpeg-core.wasm.'
+);
 
-            coreURL:
-                coreBlobURL,
+const wasmResponse =
+    await fetch(
+        wasmURL,
+        {
+            cache: 'no-store'
+        }
+    );
 
-            wasmURL:
-                wasmBlobURL
+if(!wasmResponse.ok){
 
-        });
+    throw new Error(
+        `No se pudo cargar ffmpeg-core.wasm. HTTP ${wasmResponse.status}`
+    );
+
+}
+
+log(
+    'Iniciando motor FFmpeg desde el mismo dominio.'
+);
+
+await ffmpeg.load({
+    coreURL,
+    wasmURL
+});
 
         state.ffmpeg =
             ffmpeg;
@@ -553,8 +560,41 @@ async function convertQueue(){
     if(!state.busy) break;
     await convertItem(state.queue[i], i+1, total);
   }
-  setProgress(1,'Conversión terminada');
-  log('Lote terminado.');
+const completed =
+    state.queue.filter(
+        item => item.status === 'done'
+    ).length;
+
+const failed =
+    state.queue.filter(
+        item =>
+            item.status === 'error' ||
+            item.status === 'skipped'
+    ).length;
+
+if(failed > 0){
+
+    setProgress(
+        completed / Math.max(1, total),
+        `Proceso finalizado con ${failed} error(es)`
+    );
+
+    log(
+        `Lote finalizado: ${completed} convertido(s), ${failed} con error.`
+    );
+
+}else{
+
+    setProgress(
+        1,
+        'Conversión terminada'
+    );
+
+    log(
+        'Lote terminado correctamente.'
+    );
+
+}
   state.busy=false; $('convertBtn').disabled=false; $('cancelBtn').classList.add('hidden');
 }
 
