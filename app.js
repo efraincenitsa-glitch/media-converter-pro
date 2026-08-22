@@ -201,24 +201,61 @@ async function loadFFmpeg(){
         return state.ffmpeg;
     }
 
-    $('engineStatus').textContent = 'Cargando motor...';
-    $('engineStatus').classList.remove('ready');
+    $('engineStatus').textContent =
+        'Cargando motor...';
 
-    log('Cargando motor FFmpeg desde archivos locales.');
+    $('engineStatus').classList.remove(
+        'ready'
+    );
+
+    log(
+        'Cargando motor FFmpeg desde archivos locales.'
+    );
 
     try{
 
         const ffmpegModule =
-            await import('./ffmpeg/lib/index.js');
+            await import(
+                './ffmpeg/lib/index.js'
+            );
 
         const utilModule =
-            await import('./ffmpeg/util/index.js');
+            await import(
+                './ffmpeg/util/index.js'
+            );
 
         const FFmpeg =
             ffmpegModule.FFmpeg;
 
         const fetchFile =
             utilModule.fetchFile;
+
+        const toBlobURL =
+            utilModule.toBlobURL;
+
+        if(typeof FFmpeg !== 'function'){
+
+            throw new Error(
+                'No se encontró la clase FFmpeg.'
+            );
+
+        }
+
+        if(typeof fetchFile !== 'function'){
+
+            throw new Error(
+                'No se encontró la función fetchFile.'
+            );
+
+        }
+
+        if(typeof toBlobURL !== 'function'){
+
+            throw new Error(
+                'No se encontró la función toBlobURL.'
+            );
+
+        }
 
         const ffmpeg =
             new FFmpeg();
@@ -231,7 +268,9 @@ async function loadFFmpeg(){
                     message &&
                     !message.includes('deprecated')
                 ){
+
                     log(message);
+
                 }
 
             }
@@ -268,21 +307,50 @@ async function loadFFmpeg(){
             }
         );
 
-        const coreURL =
+        const coreFileURL =
             new URL(
                 './ffmpeg/core/ffmpeg-core.js',
                 window.location.href
             ).href;
 
-        const wasmURL =
+        const wasmFileURL =
             new URL(
                 './ffmpeg/core/ffmpeg-core.wasm',
                 window.location.href
             ).href;
 
+        log(
+            'Preparando archivo ffmpeg-core.js.'
+        );
+
+        const coreBlobURL =
+            await toBlobURL(
+                coreFileURL,
+                'text/javascript'
+            );
+
+        log(
+            'Preparando archivo ffmpeg-core.wasm.'
+        );
+
+        const wasmBlobURL =
+            await toBlobURL(
+                wasmFileURL,
+                'application/wasm'
+            );
+
+        log(
+            'Iniciando motor FFmpeg.'
+        );
+
         await ffmpeg.load({
-            coreURL,
-            wasmURL
+
+            coreURL:
+                coreBlobURL,
+
+            wasmURL:
+                wasmBlobURL
+
         });
 
         state.ffmpeg =
@@ -320,7 +388,8 @@ async function loadFFmpeg(){
         );
 
         const message =
-            error && error.message
+            error &&
+            error.message
                 ? error.message
                 : String(error);
 
@@ -338,7 +407,6 @@ async function loadFFmpeg(){
     }
 
 }
-
 
 function rotateFilters(){
   const rot=$('rotateVal').value;
